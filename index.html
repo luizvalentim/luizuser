@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f4e5f">
+<title>Minhas Tarefas</title>
+<style>
+  :root { --bg:#f3f6f7; --fg:#14262d; --brand:#1f4e5f; --line:#d3dde1; --card:#fff; --done:#7a8b92; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10191d; --fg:#e6eef1; --brand:#6fb3c9; --line:#2a3b42; --card:#182329; --done:#7f929a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); min-height:100vh; display:flex; flex-direction:column; }
+  header { background:var(--brand); color:#fff; padding:1rem; }
+  header h1 { margin:0; font-size:1.25rem; }
+  nav { display:flex; gap:.5rem; padding:.75rem 1rem; border-bottom:1px solid var(--line); }
+  nav button { border:1px solid var(--line); background:var(--card); color:var(--fg); padding:.4rem .9rem; border-radius:6px; font:inherit; cursor:pointer; }
+  nav button[aria-pressed="true"] { background:var(--brand); color:#fff; border-color:var(--brand); }
+  main { flex:1; width:100%; max-width:40rem; margin:0 auto; padding:1rem; }
+  form { display:flex; gap:.5rem; margin-bottom:1rem; }
+  input[type=text] { flex:1; padding:.6rem; font:inherit; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); }
+  .add { padding:.6rem 1rem; font:inherit; border:0; border-radius:6px; background:var(--brand); color:#fff; cursor:pointer; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { display:flex; align-items:center; gap:.6rem; padding:.7rem; margin-bottom:.4rem; background:var(--card); border:1px solid var(--line); border-radius:6px; }
+  li.done span { text-decoration:line-through; color:var(--done); }
+  li span { flex:1; }
+  li .del { border:0; background:none; color:var(--done); font-size:1.1rem; cursor:pointer; }
+  .empty { color:var(--done); text-align:center; padding:2rem 0; }
+  footer { padding:1rem; text-align:center; font-size:.85rem; color:var(--done); }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+</style>
+</head>
+<body>
+<header><h1>Minhas Tarefas</h1></header>
+<nav aria-label="Filtros">
+  <button data-f="all" aria-pressed="true">Todas</button>
+  <button data-f="open" aria-pressed="false">Pendentes</button>
+  <button data-f="done" aria-pressed="false">Concluídas</button>
+</nav>
+<main>
+  <form id="form">
+    <input id="text" type="text" placeholder="Nova tarefa" aria-label="Nova tarefa" required>
+    <button class="add" type="submit">Adicionar</button>
+  </form>
+  <ul id="list"></ul>
+  <p id="empty" class="empty" hidden>Nenhuma tarefa aqui. Adicione a primeira acima.</p>
+</main>
+<footer>Aplicativo web servido por HTTPS</footer>
+<script>
+  let tasks = [], filter = "all";
+  try { tasks = JSON.parse(localStorage.getItem("tasks")) || []; } catch (e) {}
+  const save = () => { try { localStorage.setItem("tasks", JSON.stringify(tasks)); } catch (e) {} };
+  const list = document.getElementById("list"), empty = document.getElementById("empty");
+
+  function render() {
+    list.innerHTML = "";
+    const shown = tasks.filter(t => filter === "all" || (filter === "done") === t.done);
+    empty.hidden = shown.length > 0;
+    shown.forEach(t => {
+      const li = document.createElement("li");
+      if (t.done) li.className = "done";
+      const cb = Object.assign(document.createElement("input"), { type: "checkbox", checked: t.done });
+      cb.setAttribute("aria-label", "Concluir tarefa");
+      cb.onchange = () => { t.done = cb.checked; save(); render(); };
+      const sp = document.createElement("span"); sp.textContent = t.text;
+      const del = Object.assign(document.createElement("button"), { className: "del", textContent: "✕" });
+      del.setAttribute("aria-label", "Excluir tarefa");
+      del.onclick = () => { tasks = tasks.filter(x => x !== t); save(); render(); };
+      li.append(cb, sp, del);
+      list.append(li);
+    });
+  }
+
+  document.getElementById("form").onsubmit = e => {
+    e.preventDefault();
+    const input = document.getElementById("text");
+    tasks.push({ text: input.value.trim(), done: false });
+    input.value = ""; save(); render();
+  };
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+    filter = b.dataset.f;
+    document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    render();
+  });
+  render();
+</script>
+</body>
+</html>
